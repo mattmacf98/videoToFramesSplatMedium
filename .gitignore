@@ -1,0 +1,13 @@
+.idea
+venv/
+output/
+outputForColab/
+*.mp4
+*.ply
+allFrames/
+*.splat
+.DS_Store
+COLMAP.app/
+__pycache__/
+selectedFrames/
+distorted/
