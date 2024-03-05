@@ -11,3 +11,6 @@ COLMAP.app/
 __pycache__/
 selectedFrames/
 distorted/
+*.gif
+splatting/
+database.db

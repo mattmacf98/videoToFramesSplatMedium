@@ -3,31 +3,31 @@ import sys
 import os
 import struct
 
+SH_C0 = 0.28209479177387814
 ROW_LENGTH = 3 * 4 + 3 * 4 + 4 + 4
 # pos[f32;3] (x,y,z), scale[f32;3] (x,y,z), colors[i8;4] (r,g,b,a), rots[i8;4] (w,x,y,z)
 
 
 def get_ply_header(vertex_count):
-    return f"""
-        ply
-        format binary_little_endian 1.0
-        element vertex {vertex_count}
-        property float x
-        property float y
-        property float z
-        property float f_dc_0
-        property float f_dc_1
-        property float f_dc_2
-        property float opacity
-        property float scale_0
-        property float scale_1
-        property float scale_2
-        property float rot_0
-        property float rot_1
-        property float rot_2
-        property float rot_3
-        end_header
-    """
+    return f"""ply
+format binary_little_endian 1.0
+element vertex {vertex_count}
+property float x
+property float y
+property float z
+property float f_dc_0
+property float f_dc_1
+property float f_dc_2
+property float opacity
+property float scale_0
+property float scale_1
+property float scale_2
+property float rot_0
+property float rot_1
+property float rot_2
+property float rot_3
+end_header
+"""
 
 
 def read_vertex(file):
@@ -77,11 +77,19 @@ def read_vertex(file):
 
 def turn_vertex_info_to_binary(vertex):
     # Convert each component to binary representation
-    print(vertex['position'])
-    position_binary = struct.pack('fff', vertex['position']['x'], vertex['position']['x'], vertex['position']['z'])
-    color_binary = struct.pack('ffff', vertex['color']['r'], vertex['color']['g'], vertex['color']['b'], vertex['color']['a'])
-    scale_binary = struct.pack('fff', vertex['scale']['x'], vertex['scale']['y'], vertex['scale']['z'])
-    rotation_binary = struct.pack('ffff', vertex['rotation']['w'], vertex['rotation']['x'], vertex['rotation']['y'], vertex['rotation']['z'])
+    position_binary = struct.pack('fff', vertex['position']['x'], vertex['position']['y'], vertex['position']['z'])
+
+    a = vertex['color']['a']
+
+    if a == 0.0:
+        a = 0.001
+    term = 255/a - 1
+    if term <= 0.0:
+        term = 0.001
+    a = -1 * math.log(term)
+    color_binary = struct.pack('ffff', (vertex['color']['r']/255 - 0.5)/SH_C0, (vertex['color']['g']/255 -0.5)/SH_C0, (vertex['color']['b']/255 - 0.5)/SH_C0, a)
+    scale_binary = struct.pack('fff', math.log(vertex['scale']['x']), math.log(vertex['scale']['y']), math.log(vertex['scale']['z']))
+    rotation_binary = struct.pack('ffff', (vertex['rotation']['w'] - 128)/128, (vertex['rotation']['x'] - 128)/128, (vertex['rotation']['y'] - 128)/128, (vertex['rotation']['z'] - 128)/128)
     # Concatenate binary representations
     serialized_data = position_binary + color_binary + scale_binary + rotation_binary
 
@@ -97,10 +105,13 @@ def print_file_info(file_name):
         print(f"estimated vertices {vertex_count}")
 
         with open(file_name, 'rb') as file:
-            vertex = read_vertex(file)
-            print(vertex)
-            print(get_ply_header(1))
-            print(turn_vertex_info_to_binary(vertex))
+            with open('out.ply', 'w') as out_file:
+                ply_header = get_ply_header(vertex_count)
+                out_file.write(ply_header)
+            with open('out.ply', 'ab') as out_file:
+                for i in range(vertex_count):
+                    vertex = read_vertex(file)
+                    out_file.write(turn_vertex_info_to_binary(vertex))
 
     except FileNotFoundError:
         print("File not found.")

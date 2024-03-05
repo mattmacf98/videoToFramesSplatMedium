@@ -72,3 +72,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.input_video, args.all_frames_dir, args.selected_frames_dir, args.frame_count, args.output_gif, args.fps)
+
+
+# python3 app.py waterBottle.mp4 allFrames selectedFrames 300 out.gif 24
